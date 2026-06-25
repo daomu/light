@@ -13,6 +13,8 @@ build-std = ["std", "panic_abort"]
 MCU = "esp32c3"
 ESP_IDF_VERSION = "v5.5.3"
 ESP_IDF_TOOLS_INSTALL_DIR = "workspace"
+# 指向本地已克隆的 ESP-IDF，避免 embuild 在 managed 模式下回源 github。
+IDF_PATH = { value = ".embuild/espressif/esp-idf/v5.5.3", relative = true }
 
 # Uncomment this if you have moved the target dir by setting CARGO_TARGET_DIR or similar.
 # Required for now due to embuild limitations.

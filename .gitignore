@@ -1,4 +1,7 @@
 /.vscode
+/.idea
 /.embuild
 /target
-/Cargo.lock
+/.claude
+
+# Cargo.lock 应提交（二进制项目）

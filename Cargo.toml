@@ -19,9 +19,12 @@ opt-level = "z"
 
 [dependencies]
 log = "0.4"
-esp-idf-svc = { version = "0.52.1", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
-# Remove `generic-queue-8` if you plan to use `embassy-time` WITH `embassy-executor`
-embassy-time = { version = "0.5", features = ["generic-queue-8"] }
+esp-idf-sys = { version = "0.37", features = ["binstart"] }
+esp-idf-hal = "0.46"
+esp-idf-svc = { version = "0.52.1" }
+anyhow = "1"
+thiserror = "1"
+once_cell = "1"
 
 [build-dependencies]
 embuild = "0.33"
