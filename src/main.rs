@@ -5,8 +5,8 @@
 //!  2. 板载 LED 硬件前置提醒（仅日志）
 //!  3. LED PWM 初始化（duty=0）
 //!  4. I2C 初始化 + BH1750 连续模式
-//!  5. AM312 GPIO 中断挂载
-//!  6. 事件队列单例触发 + 渐暗定时器创建
+//!  5. 事件队列单例触发 + 渐暗定时器创建
+//!  6. AM312 GPIO 中断挂载（依赖队列已就绪，ISR 内直接投递）
 //!  7. 排空队列（丢弃 AM312 上电抖动产生的伪事件）
 //!  8. 同步阻塞读 2 次 BH1750 建立初始 env_dark
 //!  9. 构造 ControllerCtx + spawn controller_task + spawn light_sensor_task
@@ -71,14 +71,18 @@ fn main() -> Result<()> {
     bh.init_continuous_mode()?;
     log_init!("BH1750 ok, mode=CONT_H_RES, addr=0x{:02X}", I2C_ADDR_BH1750);
 
-    // 步骤 5：AM312 GPIO 中断
-    let _motion = MotionInput::new(peripherals.pins.gpio4)?;
-    // _motion 必须保活到程序结束，否则 PinDriver drop 会 unsubscribe
-
-    // 步骤 6：事件队列单例触发 + 渐暗定时器
+    // 步骤 5：事件队列单例触发 + 渐暗定时器
+    // ⚠️ 必须在 AM312 ISR 武装之前完成：ISR 回调直接调用 `event::queue()`,
+    //    若 Lazy 尚未初始化，ISR 上下文触发 `once_cell::sync::Lazy` 初始化
+    //    会调 `xQueueCreate`（非 ISR 安全）+ `std::sync::Once`（互斥锁），
+    //    导致 ISR 失败/卡死，MotionDetected 永不入队。
     let _ = event::queue(); // 触发 Lazy 初始化
     let fade_timer = controller_task::create_fade_timer()?;
     log_init!("event queue + fade timer ok");
+
+    // 步骤 6：AM312 GPIO 中断
+    let _motion = MotionInput::new(peripherals.pins.gpio4)?;
+    // _motion 必须保活到程序结束，否则 PinDriver drop 会 unsubscribe
 
     // 步骤 7：排空队列（丢弃 AM312 上电抖动伪事件）
     while event::queue().recv_front(0).is_some() {}
